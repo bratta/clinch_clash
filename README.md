@@ -2,16 +2,20 @@
 
 Let your decision making battle itself out
 
-## Installation
+## Installation and Usage
 
-Install the gem as:
+**NOTE:** This is currently under active development and considered pre-pre-pre-alpha.
+
+As such I haven't even released a gem yet. For now, clone the
+repository, then type this to get it going:
+
+    $ bundle
+    $ bin/clinch_clash
+
+Once it is to a point where I consider it releasable, you will install
+it as such: 
 
     $ gem install clinch_clash
-
-## Usage
-
-Once installed, fire up the CLI with:
-
     $ clinch_clash
 
 ## Contributing
