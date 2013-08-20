@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift File.dirname(__FILE__) + '/../lib'
+require 'rainbow'
+require 'clinch_clash'
+
+cc = ClinchClash::Battle.new
+cc.doit
