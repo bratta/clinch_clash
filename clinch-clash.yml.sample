@@ -1,0 +1,4 @@
+# Copy this to ~/.clinch-clash.yml
+yelp:
+  client_id: "MY YELP FUSION CLIENT ID"
+  client_secret: "MY YELP FUSION CLIENT SECRET"

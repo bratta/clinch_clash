@@ -9,6 +9,7 @@ Let your decision making battle itself out
 As such I haven't even released a gem yet. For now, clone the
 repository, then type this to get it going:
 
+    $ cp clinch-clash.yml.sample ~/.clinch-clash.yml  # Edit with your own Yelp keys
     $ bundle
     $ bin/clinch_clash
 
