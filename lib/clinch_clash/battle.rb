@@ -50,6 +50,18 @@ module ClinchClash
 
     def load_config
       loaded_config = File.exist?(@config_file) ? YAML::load(File.open(@config_file)) : {}
+      if loaded_config.empty?
+        puts "You need a .clinch-clash.yml file in your home directory!"
+        puts "Configure it like this:\n"
+        puts ":yelp"
+        puts "  client_id: MY CLIENT ID"
+        puts "  client_secret: MY CLIENT SECRET"
+        puts ""
+        puts "To get the id/secret, you will need to register an account with Yelp:"
+        puts "https://www.yelp.com/developers"
+        puts ""
+        exit
+      end
       @config = symbolize_keys(default_config.merge(loaded_config))
     end
 
