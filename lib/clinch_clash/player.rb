@@ -3,7 +3,8 @@ module ClinchClash
     include ClinchClash::Util
 
     @@player_number = 0
-    attr_accessor :name, :hp, :hp_current, :hit, :defense
+    attr_accessor :name, :hp, :hp_current, :hit, :defense, :url
+    attr_accessor :modifiers
 
     def initialize(opts={})
       @@player_number += 1
@@ -12,33 +13,23 @@ module ClinchClash
       @hp_current = opts[:hp_current] ? opts[:hp_current] : @hp
       @hit = opts[:hit] ? opts[:hit] : rand_range(1, 5)
       @defense = opts[:defense] ? opts[:defense] : rand_range(1, 5)
-    end
-
-    # TODO: Hook in to future item/armor system
-    def hp_modifier
-      0
-    end
-
-    # TODO: Hook in to future item/armor system
-    def hit_modifier
-      0
-    end
-
-    # TODO: Hook in to future item/armor system
-    def defense_modifier
-      0
+      @modifiers = {
+        hp: 0,
+        hit: 0,
+        defense: 0
+      }
     end
 
     def effective_hp
-      @hp_current + hp_modifier
+      @hp_current + @modifiers[:hp]
     end
 
     def effective_hit
-      @hit + hit_modifier
+      @hit + @modifiers[:hit]
     end
 
     def effective_defense
-      @defense + defense_modifier
+      @defense + @modifiers[:defense]
     end
 
     def is_dead?
@@ -60,12 +51,7 @@ module ClinchClash
       end
 
       hit = 0
-      hit_differential = effective_hit - player2.effective_defense
-      if (hit_differential < 0)
-        hit = (hit_differential..0).to_a.sample
-      else
-        hit = (0..hit_differential).to_a.sample
-      end
+      hit = effective_hit - player2.effective_defense
       if hit > 0
         print "#{name} "
         print "#{hit_verbs.sample} ".bright.color(:red)
@@ -78,7 +64,27 @@ module ClinchClash
         print "#{missed_verbs.sample} ".bright.color(:cyan)
         puts "#{player2.name}!"
       end
+
+      if rand(100) == 42
+        lucky_strike = (effective_hp - player2.effective_defense).abs + 1
+        print "LUCKY STRIKE! ".bright.color(:green)
+        puts "#{name} hits #{player2.name} for #{lucky_strike}!".bright.color(:blue)
+        player2.hp_current = player2.hp_current - lucky_strike
+      end
+
       player2.attack(self, true) unless counterattack
+    end
+
+    def set_yelp_info(yelp_info)
+      if (yelp_info)
+        @name = yelp_info["name"]
+        @url = yelp_info["url"]
+        apply_yelp_bonus(yelp_info["rating"]) if yelp_info["rating"]
+      end
+    end
+
+    def apply_yelp_bonus(rating)
+      @modifiers[:hit] += rating.to_f.floor
     end
 
     def modifier_s(modifier)
@@ -91,7 +97,7 @@ module ClinchClash
       formatted = <<-EOT
       #{@name}
       HP: #{@hp_current}/#{@hp}
-      Hit: #{@hit}#{modifier_s(hit_modifier)} :: Defense: #{@defense}#{modifier_s(defense_modifier)}
+      Hit: #{@hit}#{modifier_s(@modifiers[:hit])} :: Defense: #{@defense}#{modifier_s(@modifiers[:defense])}
       EOT
       formatted.strip
     end

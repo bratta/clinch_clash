@@ -2,10 +2,17 @@ module ClinchClash
   class Battle
     include ClinchClash::Util
 
-    def initialize
+    def initialize(config_file = nil)
       @players = []
+      @config_file = config_file || File.join(Dir.home, '.clinch-clash.yml')
+      load_config
+      @yelp = ClinchClash::Yelp.new(@config[:yelp])
       init_players
-      name_players
+      if @config[:yelp]
+        gather_places
+      else
+        name_players
+      end
     end
 
     def init_players
@@ -30,7 +37,9 @@ module ClinchClash
       pause_for_user
       execute_round
       if @players.count == 1
-        puts "#{@players.first.name} wins the game!".bright.color(:green)
+        winner = @players.first
+        puts "#{winner.name} wins the game!".bright.color(:green)
+        puts winner.url if winner.url
       else
         print "Tie game: ".bright.color(:yellow)
         puts @players.map(&:name).join(", ").bright.color(:yellow)
@@ -39,9 +48,50 @@ module ClinchClash
 
     private
 
+    def load_config
+      loaded_config = File.exist?(@config_file) ? YAML::load(File.open(@config_file)) : {}
+      @config = symbolize_keys(default_config.merge(loaded_config))
+    end
+
+    def default_config
+      { max_round_multiplier: 3, number_of_attacks_per_round: 10 }
+    end
+
+    def gather_places
+      search_term = prompt_user("Enter a Yelp search term")
+      zipcode = prompt_user("Enter a zipcode")
+      response = search_yelp(search_term, zipcode)
+
+      result = []
+      if response && response["businesses"]
+        response["businesses"].each do |business|
+          result << { 
+            "name" => business["name"],
+            "rating" =>  business["rating"],
+            "url" => business["url"]
+          }
+        end
+      end
+
+      @players.each do |player|
+        chosen_name = result.sample
+        result = result - [chosen_name]
+        player.set_yelp_info(chosen_name)
+      end
+    end
+
+    def search_yelp(search_term, zipcode)
+      response = @yelp.search(search_term, zipcode)
+      if (response["error"])
+        puts "Error searching Yelp: #{response["error"]["text"]}"
+        exit
+      end
+      response
+    end
+
     def execute_round
       round_number = 1
-      max_rounds = @players.count * 3
+      max_rounds = @players.count * @config[:max_round_multiplier]
       while @players.count > 1 && round_number < max_rounds
         player1 = @players.sample
         player2 = (@players - [player1]).sample
@@ -54,7 +104,7 @@ module ClinchClash
     end
 
     def initiate_attacks(player1, player2)
-      attack_counter = 10
+      attack_counter = @config[:number_of_attacks_per_round]
       while (!player1.is_dead? && !player2.is_dead? && attack_counter > 0)
         player1.attack(player2)
         attack_counter -= 1
