@@ -4,6 +4,9 @@ Let your decision making battle itself out
 
 ## Installation and Usage
 
+**NOTE:** You will need your own client id and client secret key from Yelp. Get
+that from https://www.yelp.com/developers
+
 **NOTE:** This is currently under active development and considered pre-pre-pre-alpha.
 
 As such I haven't even released a gem yet. For now, clone the
