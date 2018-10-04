@@ -1,3 +1,6 @@
 # Copy this to ~/.clinch-clash.yml
 yelp:
   api_key: "MY YELP FUSION API KEY"
+battle:
+  max_round_multiplier: 3
+  number_of_attacks_per_round: 10

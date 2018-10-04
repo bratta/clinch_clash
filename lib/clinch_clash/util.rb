@@ -1,60 +1,38 @@
+# frozen_string_literal: true
+
 require 'io/console'
 
 module ClinchClash
+  # Utility mixin methods
   module Util
-    def symbolize_keys(hash)
-      hash.inject({}){|result, (key, value)|
-        new_key = case key
-                  when String then key.to_sym
-                  else key
-                  end
-        new_value = case value
-                    when Hash then symbolize_keys(value)
-                    else value
-                    end
-        result[new_key] = new_value
-        result
-      }
-    end
-
     def rand_range(min, max)
       (min..max).to_a.sample
     end
 
     def pause_for_user
-      puts ""
-      print "Press any key...".bright.color(:white)
+      puts ''
+      print 'Press any key...'.bright.color(:white)
       user_input = STDIN.getch
-      puts ""
+      puts ''
       user_input
     end
 
     def prompt_user(message)
       print "#{message} ".bright.color(:white)
-      print ">".bright.color(:red)
-      print ">".bright.color(:green)
-      print "> ".bright.color(:blue)
+      print '>'.bright.color(:red)
+      print '>'.bright.color(:green)
+      print '> '.bright.color(:blue)
       gets.chomp
     end
 
     def round_banner(round, name1, name2)
-      puts ""
-      print "-".bright.color(:green)
-      print "=".bright.color(:blue)
-      print "-".bright.color(:green)
-      print "=".bright.color(:blue)
-      print "#".bright.color(:cyan)
-      print "( ".bright.color(:red)
-      print "ROUND #{round}: ".bright.color(:white)
-      print "#{name1} ".bright.color(:yellow)
-      print "-VS- ".bright.color(:magenta)
-      print "#{name2} ".bright.color(:yellow)
-      print ")".bright.color(:red)
-      print "#".bright.color(:cyan)
-      print "=".bright.color(:blue)
-      print "-".bright.color(:green)
-      print "=".bright.color(:blue)
-      puts "-".bright.color(:green)
+      puts ''
+      [['-', :green], ['=', :blue], ['-', :green], ['=', :blue], ['#', :cyan], ['( ', :red],
+       ["ROUND #{round}: ", :white], ["#{name1} ", :yellow], ['-VS- ', :magenta], ["#{name2} ", :yellow],
+       [' )', :red], ['#', :cyan], ['=', :blue], ['-', :green], ['=', :blue], ['-', :green]].each do |elem|
+         print elem[0].bright.color(elem[1])
+       end
+      puts ''
     end
   end
 end

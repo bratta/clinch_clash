@@ -1,4 +1,4 @@
-Copyright (c) 2013 Tim Gourley
+Copyright (c) 2018 Tim Gourley
 
 MIT License
 

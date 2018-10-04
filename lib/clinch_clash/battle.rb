@@ -1,137 +1,109 @@
+# frozen_string_literal: true
+
 module ClinchClash
+  # The main class that does the work
   class Battle
     include ClinchClash::Util
 
+    attr_accessor :config, :players, :yelp
+
     def initialize(config_file = nil)
       @players = []
-      @config_file = config_file || File.join(Dir.home, '.clinch-clash.yml')
-      load_config
-      @yelp = ClinchClash::Yelp.new(@config[:yelp])
+      load_config(config_file)
+      @yelp = ClinchClash::Yelp.new(@config.yelp.api_key)
       init_players
-      if @config[:yelp]
-        gather_places
-      else
-        name_players
-      end
+      gather_places
     end
 
     def init_players
       players = nil
-      while players == nil
-        players = prompt_user("Enter number of players")
+      while players.nil?
+        players = prompt_user('Enter number of players')
         players = nil if players !~ /\d+/
-        players.to_i.times do 
+        players.to_i.times do
           @players << Player.new
         end
       end
     end
 
-    def name_players
-      @players.each do |player|
-        player.name = prompt_user("Enter a name for #{player.name}").capitalize
-      end
-    end
-
     def doit
-      @players.each {|x| puts x.to_s }
+      @players.each { |x| puts x.to_s }
       pause_for_user
-      execute_round
-      if @players.count == 1
-        winner = @players.first
-        puts "#{winner.name} wins the game!".bright.color(:green)
-        puts winner.url if winner.url
-      else
-        print "Tie game: ".bright.color(:yellow)
-        puts @players.map(&:name).join(", ").bright.color(:yellow)
-      end
+      execute_rounds
+      @players.count == 1 ? game_is_won : tie_game
     end
 
     private
 
-    def load_config
-      loaded_config = File.exist?(@config_file) ? YAML::load(File.open(@config_file)) : {}
-      if loaded_config.empty?
-        puts "You need a .clinch-clash.yml file in your home directory!"
-        puts "Configure it like this:\n"
-        puts ":yelp"
-        puts "  client_id: MY CLIENT ID"
-        puts "  client_secret: MY CLIENT SECRET"
-        puts ""
-        puts "To get the id/secret, you will need to register an account with Yelp:"
-        puts "https://www.yelp.com/developers"
-        puts ""
-        exit
-      end
-      @config = symbolize_keys(default_config.merge(loaded_config))
-    end
-
-    def default_config
-      { max_round_multiplier: 3, number_of_attacks_per_round: 10 }
+    def load_config(config_file = nil)
+      config_file ||= File.join(Dir.home, '.clinch-clash.yml')
+      required_fields = ['yelp', 'yelp.api_key',
+                         'battle', 'battle.max_round_multiplier',
+                         'battle.number_of_attacks_per_round']
+      @config = Konfigyu::Config.new(config_file, required_fields: required_fields)
     end
 
     def gather_places
-      search_term = prompt_user("Enter a Yelp search term")
-      zipcode = prompt_user("Enter a zipcode")
-      response = search_yelp(search_term, zipcode)
+      search_term = prompt_user('Enter a Yelp search term')
+      zipcode = prompt_user('Enter a zipcode')
+      results = @yelp.search(search_term, zipcode)
+      add_yelp_info_to_players(results)
+    end
 
-      result = []
-      if response && response["businesses"]
-        response["businesses"].each do |business|
-          result << { 
-            "name" => business["name"],
-            "rating" =>  business["rating"],
-            "url" => business["url"]
-          }
-        end
-      end
-
+    def add_yelp_info_to_players(results)
       @players.each do |player|
-        chosen_name = result.sample
-        result = result - [chosen_name]
-        player.set_yelp_info(chosen_name)
+        chosen_name = results.sample
+        results -= [chosen_name]
+        player.yelp_info(chosen_name)
       end
     end
 
-    def search_yelp(search_term, zipcode)
-      response = @yelp.search(search_term, zipcode)
-      if (response["error"])
-        puts "Error searching Yelp: #{response["error"]["text"]}"
-        exit
-      end
-      response
-    end
-
-    def execute_round
+    def execute_rounds
       round_number = 1
-      max_rounds = @players.count * @config[:max_round_multiplier]
+      max_rounds = @players.count * @config.battle.max_round_multiplier
       while @players.count > 1 && round_number < max_rounds
-        player1 = @players.sample
-        player2 = (@players - [player1]).sample
-        round_banner(round_number, player1.name, player2.name)
-        initiate_attacks(player1, player2)
-        check_for_death(player1, player2)
+        single_round(round_number)
         round_number += 1
         pause_for_user
       end
     end
 
+    def single_round(round_number)
+      player1 = @players.sample
+      player2 = (@players - [player1]).sample
+      round_banner(round_number, player1.name, player2.name)
+      initiate_attacks(player1, player2)
+      check_for_death(player1, player2)
+    end
+
+    def game_is_won
+      winner = @players.first
+      puts "#{winner.name} wins the game!".bright.color(:green)
+      Launchy.open winner.url if winner.url
+    end
+
+    def tie_game
+      print 'Tie game: '.bright.color(:yellow)
+      puts @players.map(&:name).join(', ').bright.color(:yellow)
+    end
+
     def initiate_attacks(player1, player2)
-      attack_counter = @config[:number_of_attacks_per_round]
-      while (!player1.is_dead? && !player2.is_dead? && attack_counter > 0)
+      attack_counter = @config.battle.number_of_attacks_per_round
+      while !player1.dead? && !player2.dead? && attack_counter.positive?
         player1.attack(player2)
         attack_counter -= 1
       end
     end
 
     def check_for_death(player1, player2)
-      if player1.is_dead?
+      if player1.dead?
         puts "#{player2.name} wins this round!".bright.color(:blue)
         @players.delete(player1)
-      elsif player2.is_dead?
+      elsif player2.dead?
         puts "#{player1.name} wins this round!".bright.color(:blue)
         @players.delete(player2)
       else
-        puts "Stalemate!".bright.color(:red)
+        puts 'Stalemate!'.bright.color(:red)
       end
     end
   end
