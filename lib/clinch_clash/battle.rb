@@ -15,6 +15,15 @@ module ClinchClash
       gather_places
     end
 
+    def doit
+      @players.each { |x| puts x.to_s }
+      pause_for_user
+      execute_rounds
+      @players.count == 1 ? game_is_won : tie_game
+    end
+
+    private
+
     def init_players
       players = nil
       while players.nil?
@@ -25,15 +34,6 @@ module ClinchClash
         end
       end
     end
-
-    def doit
-      @players.each { |x| puts x.to_s }
-      pause_for_user
-      execute_rounds
-      @players.count == 1 ? game_is_won : tie_game
-    end
-
-    private
 
     def load_config(config_file = nil)
       config_file ||= File.join(Dir.home, '.clinch-clash.yml')
